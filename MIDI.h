@@ -1,7 +1,7 @@
 /*
  * MIDI.h
  *
- * 	A simple MIDI library for STM32Cube.
+ * 	A simple MIDI Input library for STM32Cube. The library implements MIDI INPUT ONLY!
  * 	Utilizes STM32 HAL interfaces for receiving MIDI data from a U(S)ART with DMA.
  *
  *********************** IMPORTANT HARDWARE INITIALIZATION INSTRUCTIONS: ***************************
@@ -71,6 +71,8 @@
  * 	The MIDI data buffer is 128-bytes by default. You can override this by #define-ing
  * 	MIDI_BUFF_SIZE to whatever size you want (as long as it's divisible by two).
  *
+ * 	As a reminder, this library only implements MIDI input.
+ *
  *  Created on: Feb 13, 2026
  *      Author: AlexanduhHi (Alex Elliott)
  */
@@ -97,15 +99,30 @@ extern "C" {
 /* USER CODE END Private defines */
 
 /* USER CODE BEGIN Prototypes */
+
+/* MIDI_init
+ * @brief 	Initializes the MIDI library with the given UART and MIDI channel.
+ * @param 	huart		The handle of the UART to be used for MIDI input.
+ * @param	channel		The MIDI channel to listen to, between 1 and 16. Alternatively, you can
+ * 						specify "MIDI_CHANNEL_ALL" as the MIDI channel and that will let the library
+ * 						listen to ALL 16 channels.
+ */
 void MIDI_init(UART_HandleTypeDef* huart, uint8_t channel);
+
+/* MIDI_check
+ * @brief 	Check if MIDI data was received. If data was received, organize it into discrete
+ * 			commands and send them one by one to the MIDI parser. You MUST include this in the main
+ * 			program loop somewhere to ensure MIDI data is continuously processed.
+ */
 void MIDI_check();
 
-//USER-DEFINABLE CALLBACKS
+//USER-DEFINABLE CALLBACKS - IMPLEMENT THESE ELSEWHERE IN YOUR PROGRAM CODE
 void MIDI_noteOn(uint8_t, uint8_t);
 void MIDI_noteOff(uint8_t, uint8_t);
 void MIDI_CC(uint8_t, uint8_t);
 void MIDI_pitchBend(uint16_t);
 void MIDI_systemReset();
+
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus

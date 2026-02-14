@@ -1,7 +1,7 @@
 /*
  * MIDI.c
  *
- * 	A simple MIDI library for STM32Cube.
+ * 	A simple MIDI Input library for STM32Cube. The library implements MIDI INPUT ONLY!
  * 	Utilizes STM32 HAL interfaces for receiving MIDI data from a U(S)ART with DMA.
  *
  *********************** IMPORTANT HARDWARE INITIALIZATION INSTRUCTIONS: ***************************
@@ -71,6 +71,8 @@
  * 	The MIDI data buffer is 128-bytes by default. You can override this by #define-ing
  * 	MIDI_BUFF_SIZE to whatever size you want (as long as it's divisible by two).
  *
+ * 	As a reminder, this library only implements MIDI input.
+ *
  *  Created on: Feb 13, 2026
  *      Author: AlexanduhHi (Alex Elliott)
  */
@@ -99,6 +101,11 @@ uint8_t MIDI_cmd_state; //FSM parameter for MIDI check (0: status byte, 1: data 
 uint8_t MIDI_cmd_stage[MIDI_MAX_CMD_LEN]; //staging area for MIDI command as bytes come in (always re-centered around status byte)
 uint8_t MIDI_channel; //MIDI channel to listen to
 
+/* MIDI_DATA_RX
+ * @brief 	A "MIDI data received" callback, called by the HAL. Check the Rx status and set flags.
+ * @param 	huart		The handle of the UART that received data and called the callback.
+ * @param	Size		The size/amount of data that is received/valid.
+ */
 static void MIDI_DATA_RX(UART_HandleTypeDef* huart, uint16_t Size)
 {
 	if (huart->Instance == MIDI_uart->Instance) {
@@ -113,12 +120,15 @@ static void MIDI_DATA_RX(UART_HandleTypeDef* huart, uint16_t Size)
 			MIDI_max_valid = Size;
 		}
 		else if (huart->RxEventType == HAL_UART_RXEVENT_IDLE) {
-			MIDI_rx_flag = 1; //receive ready (undetermined half)
+			MIDI_rx_flag = 1; //received data ready (undetermined half)
 			MIDI_max_valid = Size;
 		}
 	}
 }
 
+/* MIDI_parse
+ * @brief 	Takes the completed MIDI command and interprets it, issuing the associated callback.
+ */
 static void MIDI_parse() {
 	// What type of message did we receive? (Check status byte value.)
 	// Call respective callback based on message received.
@@ -160,11 +170,16 @@ static void MIDI_parse() {
 	}
 }
 
+/* MIDI_init
+ * @brief 	Initializes the MIDI library with the given UART and MIDI channel.
+ * @param 	huart		The handle of the UART to be used for MIDI input.
+ * @param	channel		The MIDI channel to listen to, between 1 and 16. Alternatively, you can
+ * 						specify "MIDI_CHANNEL_ALL" as the MIDI channel and that will let the library
+ * 						listen to ALL 16 channels.
+ */
 void MIDI_init(UART_HandleTypeDef* huart, uint8_t channel) {
 	MIDI_buffer_index = 0;
 	MIDI_message_length = MIDI_BUFF_SIZE; //init the message length to the max allowable
-	HAL_UART_RegisterRxEventCallback(huart, MIDI_DATA_RX); // register the user-defined RX callback
-	HAL_UARTEx_ReceiveToIdle_DMA(huart, MIDI_buffer, MIDI_BUFF_SIZE);
 	MIDI_uart = huart; //save the uart to listen to
 	if ((channel > 0) && (channel <= 16)) {
 		MIDI_channel = channel - 1; //channel should be between 1 and 16
@@ -172,8 +187,15 @@ void MIDI_init(UART_HandleTypeDef* huart, uint8_t channel) {
 	else {
 		MIDI_channel = MIDI_CHANNEL_ALL; //resort to listening to all channels if invalid channel provided
 	}
+	HAL_UART_RegisterRxEventCallback(huart, MIDI_DATA_RX); // register the user-defined RX callback
+	HAL_UARTEx_ReceiveToIdle_DMA(huart, MIDI_buffer, MIDI_BUFF_SIZE); //start uart comms
 }
 
+/* MIDI_check
+ * @brief 	Check if MIDI data was received. If data was received, organize it into discrete
+ * 			commands and send them one by one to the MIDI parser. You MUST include this in the main
+ * 			program loop somewhere to ensure MIDI data is continuously processed.
+ */
 void MIDI_check() {
 	if (MIDI_rx_flag == 1) {
 		// NEW DATA AVAILABLE, RUN STATE MACHINE!
@@ -228,18 +250,13 @@ void MIDI_check() {
 		MIDI_buffer_index = MIDI_max_valid; //reset buffer index to last byte read
 		if (MIDI_buffer_index >= MIDI_BUFF_SIZE - 1) {
 			MIDI_buffer_index = 0;
-//			for (int i = 0; i < MIDI_BUFF_SIZE; i++)
-//			{
-//				MIDI_buffer[i] = 0;
-//			}
 		}
-		MIDI_rx_flag = 0;
+		MIDI_rx_flag = 0; //reset MIDI RX flag
 	}
 }
 
-//
-//
-// THE FOLLOWING ARE USER-DEFINABLE CALLBACKS
+// THE FOLLOWING ARE THE FIVE USER-DEFINABLE CALLBACKS MENTIONED IN THE DOCUMENTATION
+// IMPLEMENT THESE ELSEWHERE IN YOUR CODE
 
 __weak void MIDI_noteOn(uint8_t note_num, uint8_t velocity) { return; }
 
