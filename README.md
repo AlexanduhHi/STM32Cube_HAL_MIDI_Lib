@@ -1,4 +1,4 @@
-# STM32Cube_HAL_MIDI_Lib
+# STM32Cube HAL MIDI Library
 A simple MIDI Input library for use with STM32CubeIDE utilizing CubeMX and HAL interfaces for U(S)ART Rx comms with DMA and callbacks.
 
 __IMPORTANT HARDWARE INITIALIZATION INSTRUCTIONS:__
