@@ -2,12 +2,14 @@
 A simple MIDI Input library for use with STM32CubeIDE utilizing CubeMX and HAL interfaces for U(S)ART Rx comms with DMA and callbacks.
 
 __IMPORTANT HARDWARE INITIALIZATION INSTRUCTIONS:__
+
 The STM32 UART hardware must be configured in a certain way in order for this MIDI library to
 work properly. The UART you would like to use should be setup with a baudrate of 31,250 bps and
 the UART must use DMA for Rx data. I recommend using CubeMX to assist with this setup.
 
 The setup I had for testing this library (using USART6 on an STM32F746NG) used the following
 CubeMX settings. With the desired UART selected, these are the tabs and their settings:
+
 Parameter settings:
 - UART mode = asynchronous
 - Baudrate = 31250 bits/sec
@@ -15,8 +17,10 @@ Parameter settings:
 - Parity bits = none (MIDI doesn't use parity bits)
 - Stop bits = 1
 - Data direction = receive only
+
 NVIC settings:
 - both DMA and U(S)ART interrupts enabled
+
 DMA settings:
 - DMA request = U(S)ART#_RX
 - Direction = peripheral to memory
@@ -31,6 +35,7 @@ to do is pass the address of the UART handle to the MIDI_init function.
 e.g. MIDI_init(&huart6, MIDI_CHANNEL_ALL);
 
 __HOW TO USE THE MIDI LIBRARY:__
+
 Simply run MIDI_init(huart,channel) before your main loop, passing it an STM32 HAL uart handle
 and a MIDI channel to listen on. You can also specify MIDI_CHANNEL_ALL as the channel; this will
 let the MIDI library listen to all 16 channels. Note: Currently, the library doesn't support
@@ -47,6 +52,7 @@ The library creates five user-definable callback functions, one for each main ty
 message (we aren't counting SysEx as that is a whole other beast). The user (you!) can choose to
 implement these however you wish. The library calls the appropriate callback function whenever a
 message of the corresponding type is received:
+
 - MIDI_noteOn(uint8_t note_num, uint8_t velocity)
 	  called when a "Note On" command is received, and passes the 7-bit note number and velocity
 	  value as arguments.
